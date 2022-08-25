@@ -1,10 +1,15 @@
 ﻿using ABI_RC.Core.Networking;
+using ABI_RC.Core.Player;
 using AutoConnect;
-using AutoConnect.Classes;
 using Classes;
 using HarmonyLib;
 using MelonLoader;
+using Newtonsoft.Json;
 using System;
+using System.Collections;
+using System.Diagnostics;
+using System.IO;
+using System.Threading;
 using ButtonAPI = ChilloutButtonAPI.ChilloutButtonAPIMain;
 
 [assembly: MelonInfo(typeof(AutoConnect.Main), Guh.Name, Guh.Version, Guh.Author, Guh.DownloadLink)]
@@ -39,10 +44,17 @@ public static class Patches {
             _ = Main.instanceHistoryMenu.Add(worldId, instanceId);
             // Main.instanceHistory.Add($"{worldId}:{instanceId}");
         }
+        InstanceHistory.Add(worldId, instanceId);
+        Main.GenerateReconnectScript(CVRUrl.CreateJoinURI(worldId, instanceId));
     }
 }
 
 public class Main : MelonMod {
+    public const string bat_template = @"
+taskkill /f /im {0}
+timeout /t {1}
+start """" {2}
+";
     public bool fully_loaded = false;
     public static InstanceHistoryMenu instanceHistoryMenu;
     // public static ObservableCollection<string> instanceHistory = new ObservableCollection<string>();
@@ -58,12 +70,14 @@ public class Main : MelonMod {
                 return;
             }
         }
+        if (File.Exists("reconnect.bat")) File.Delete("reconnect.bat");
     }
     public override void OnApplicationStart() {
         MelonPreferences_Category cat = MelonPreferences.CreateCategory(Guh.Name);
         AutoConnectSetting = cat.CreateEntry<bool>("Enable Autoconnect", true, "Enable URI Protocol handler");
         WorldIdSetting = cat.CreateEntry<string>("WorldID", "46c5f43c-4492-40af-94ce-f3ab559ed65c", "Debug World ID");
         InstanceIdSetting = cat.CreateEntry<string>("InstanceID", "i+a94d415425f2546a-415006-3f6e77-1868cdc4", "Debug Instance ID");
+        InstanceHistory.Init("UserData/InstanceHistory.json");
         ButtonAPI.OnInit += ButtonAPI_OnInit;
         // instanceHistory = new ObservableCollection<string>();
         // instanceHistory.CollectionChanged += InstanceHistory_CollectionChanged;
@@ -83,10 +97,22 @@ public class Main : MelonMod {
     //    var instance = ((string)e.NewItems[0]).Split(":");
     //    instanceHistoryMenu.Add(instance[0], instance[1]);
     //}
+    //bool waitForNextSceneForInit = false;
+    //public override void OnSceneWasUnloaded(int buildIndex, string sceneName) {
+    //    LoggerInstance.Msg("!fully_loaded: {0}", !fully_loaded);
+    //    LoggerInstance.Msg("!waitForNextSceneForInit: {0}", !waitForNextSceneForInit);
+    //    LoggerInstance.Msg("buildIndex == 1: {0}", buildIndex == 1);
+    //    LoggerInstance.Msg("sceneName == \"Headquarters\": {0}", sceneName == "Headquarters");
+    //    if (!fully_loaded && !waitForNextSceneForInit && buildIndex == 1 && sceneName == "Headquarters") {
+    //        LoggerInstance.Msg("Waiting for next scene to init...");
+    //        waitForNextSceneForInit = true;
+    //    }
+    //}
 
     public override void OnSceneWasInitialized(int buildIndex, string sceneName) {
-        if (!fully_loaded && sceneName == "Virtual Apartment") {
+        if (!fully_loaded && buildIndex == -1) {
             fully_loaded = true;
+            Thread.Sleep(1000);
             OnGameFullyLoaded();
         }
     }
@@ -98,5 +124,16 @@ public class Main : MelonMod {
                 StartupURI.Join();
             }
         }
+    }
+
+    public static void GenerateReconnectScript(CVRUrl uri) {
+        string filename = Process.GetCurrentProcess().ProcessName + ".exe";
+        string args = "";
+        foreach (var arg in Environment.GetCommandLineArgs()) {
+            if (!Uri.TryCreate(arg, UriKind.Absolute, out _))
+                args += arg+" ";
+        }
+        args += uri.ToString();
+        File.WriteAllText("reconnect.bat", string.Format(bat_template, filename, 3, args.Replace("%", "%%").Trim()));
     }
 }

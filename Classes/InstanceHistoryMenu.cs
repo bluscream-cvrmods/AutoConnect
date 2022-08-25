@@ -1,16 +1,16 @@
 ﻿using ChilloutButtonAPI.UI;
 using Classes;
 using MelonLoader;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 
-namespace AutoConnect.Classes {
+namespace AutoConnect {
     public class InstanceHistoryMenu {
         public SubMenu Parent { get; set; }
         public SubMenu Menu { get; set; }
-        public List<string> Instances { get; set; } = new List<string>();
         public InstanceHistoryMenu(SubMenu parent) {
             Parent = parent;
             _ = Create();
@@ -24,13 +24,7 @@ namespace AutoConnect.Classes {
         }
 
         public GameObject Add(string worldId, string instanceId) {
-            string instanceStr = $"{worldId}:{instanceId}";
-            if (Instances.Contains(instanceStr)) {
-                return null;
-            }
-            Instances.Add(instanceStr);
             return Menu.AddButton($"{DateTime.Now}", GetInstanceToolTip(worldId, instanceId), () => {
-                MelonLogger.Msg("Joining instance: {0}", instanceStr);
                 ABI_RC.Core.Networking.IO.Instancing.Instances.SetJoinTarget(instanceId, worldId);
             });
         }

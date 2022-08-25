@@ -79,6 +79,7 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
     <Compile Include="Classes\CVRUrl.cs" />
+    <Compile Include="Classes\InstanceHistory.cs" />
     <Compile Include="Classes\InstanceHistoryMenu.cs" />
     <Compile Include="Classes\ObservableCollection.cs" />
     <Compile Include="Main.cs" />

@@ -53,6 +53,10 @@ namespace Bluscream {
                 File.AppendAllLines(file.FullName, new string[] { line });
             } catch { }
         }
+
+        public static string ReadAllText(this FileInfo file) => File.ReadAllText(file.FullName);
+
+        public static List<string> ReadAllLines(this FileInfo file) => File.ReadAllLines(file.FullName).ToList();
         #endregion
         #region UI
         #endregion
