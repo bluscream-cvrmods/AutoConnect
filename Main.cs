@@ -1,4 +1,6 @@
-﻿using ABI_RC.Core.Networking;
+﻿using ABI_RC.Core;
+using ABI_RC.Core.Extensions;
+using ABI_RC.Core.Networking;
 using AutoConnect;
 using Classes;
 using HarmonyLib;
@@ -6,7 +8,15 @@ using MelonLoader;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Security.Permissions;
+using System.Security.Principal;
 using System.Threading;
+using System.Windows.Forms;
+using UnityEngine;
+using URIScheme;
+using URIScheme.Enums;
+using MessageBox = ABI_RC.Core.Extensions.MessageBox;
+using MessageBoxButtons = ABI_RC.Core.Extensions.MessageBoxButtons;
 
 [assembly: MelonInfo(typeof(AutoConnect.Main), Guh.Name, Guh.Version, Guh.Author, Guh.DownloadLink)]
 [assembly: MelonGame("Alpha Blend Interactive", "ChilloutVR")]
@@ -45,9 +55,46 @@ start """" {2}
 ";
     public bool fully_loaded = false;
     public CVRUrl StartupURI;
-    public MelonPreferences_Entry AutoConnectSetting;
+    public MelonPreferences_Entry AutoConnectSetting, URIInstallIgnored, URIInstallForced;
+
+    private static bool IsAdministrator() {
+        WindowsIdentity identity = WindowsIdentity.GetCurrent();
+        WindowsPrincipal principal = new WindowsPrincipal(identity);
+        return principal.IsInRole(WindowsBuiltInRole.Administrator);
+    }
+    [PrincipalPermission(SecurityAction.Demand, Role = @"BUILTIN\Administrators")]
+    public void RegisterURI(URISchemeService service) {
+        // try { service.Delete(); } catch (Exception ex) { MelonLogger.Error("Failed to delete local cvr:// protocol: {0}", ex.Message); }
+        try { service.Set(); if (!service.Check()) throw new Exception("Service not found"); } catch (Exception ex) { MelonLogger.Error("Failed to register local cvr:// protocol: {0}", ex.Message); }
+        service = new URISchemeService(service.Key, service.Description, service.RunPath, RegisterType.LocalMachine);
+        // try { service.Delete(); } catch (Exception ex) { MelonLogger.Error("Failed to delete global cvr:// protocol: {0}", ex.Message); }
+        try { service.Set(); if (!service.Check()) throw new Exception("Service not found"); } catch (Exception ex) { MelonLogger.Error("Failed to register global cvr:// protocol: {0}", ex.Message); }
+    }
 
     public override void OnPreSupportModule() {
+        MelonPreferences_Category cat = MelonPreferences.CreateCategory(Guh.Name);
+        AutoConnectSetting = cat.CreateEntry<bool>("Enable Autoconnect", true, "Enable URI Protocol handler");
+        URIInstallIgnored = cat.CreateEntry("URIInstallIgnored", false, "Disable URI Installation Check");
+        URIInstallForced = cat.CreateEntry("URIInstallForced", false, "Force URI Installation Check", true);
+        var forced = (bool)URIInstallForced.BoxedValue;
+        if (forced || !(bool)URIInstallIgnored.BoxedValue) {
+            var service = new URISchemeService("cvr", "URL:cvr Protocol", Environment.GetCommandLineArgs()[0], RegisterType.CurrentUser);
+            if (forced || !service.Check()) {
+                MelonLogger.Warning("cvr:// URI scheme not registered!");
+                MessageBoxResult dr = MessageBox.Show("Would you like to install the cvr:// URI protocol now?(Requires admin permissions)\n\nSelecting \"No\" will suppress this message.", "[MelonLoader] AutoConnect Mod", MessageBoxButtons.YesNoCancel);
+                MelonLogger.Msg("MessageBoxResult: {0}", dr);
+                switch (dr) {
+                    case MessageBoxResult.Yes:
+                        RegisterURI(service);
+                        break;
+                    case MessageBoxResult.No:
+                        URIInstallIgnored.BoxedValue = true;
+                        MelonPreferences.Save();
+                        break;
+                }
+            }
+        }
+
         foreach (string arg in Environment.GetCommandLineArgs()) {
             bool success = Uri.TryCreate(arg.Trim(), UriKind.Absolute, out Uri uri);
             if (success && uri.Scheme == "cvr") {
@@ -61,8 +108,6 @@ start """" {2}
         }
     }
     public override void OnApplicationStart() {
-        MelonPreferences_Category cat = MelonPreferences.CreateCategory(Guh.Name);
-        AutoConnectSetting = cat.CreateEntry<bool>("Enable Autoconnect", true, "Enable URI Protocol handler");
         Patches.Init(HarmonyInstance);
     }
 
