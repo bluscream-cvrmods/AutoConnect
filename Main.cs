@@ -6,9 +6,7 @@ using MelonLoader;
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Threading;
-using ButtonAPI = ChilloutButtonAPI.ChilloutButtonAPIMain;
 
 [assembly: MelonInfo(typeof(AutoConnect.Main), Guh.Name, Guh.Version, Guh.Author, Guh.DownloadLink)]
 [assembly: MelonGame("Alpha Blend Interactive", "ChilloutVR")]
@@ -22,8 +20,6 @@ public static class Guh {
 public static class Patches {
     public static void Init(HarmonyLib.Harmony harmonyInstance) {
         try {
-            //MelonLogger.Msg("Patching PopulatePresenceFromNetwork");
-            //_ = harmonyInstance.Patch(typeof(ABI_RC.Core.Networking.RichPresence).GetMethod("PopulatePresenceFromNetwork"), prefix: new HarmonyMethod(typeof(Patches).GetMethod("PopulatePresenceFromNetwork")));
             MelonLogger.Msg("Patching SetJoinTarget");
             _ = harmonyInstance.Patch(typeof(ABI_RC.Core.Networking.IO.Instancing.Instances).GetMethod("SetJoinTarget"), postfix: new HarmonyMethod(typeof(Patches).GetMethod("SetJoinTarget")));
         } catch (Exception ex) {
@@ -37,12 +33,6 @@ public static class Patches {
         return false;
     }
     public static void SetJoinTarget(string instanceId, string worldId) {
-        MelonLogger.Msg("SetJoinTarget: {0}:{1}", worldId, instanceId);
-        if (ButtonAPI.HasInit) {
-            _ = Main.instanceHistoryMenu.Add(worldId, instanceId);
-            // Main.instanceHistory.Add($"{worldId}:{instanceId}");
-        }
-        InstanceHistory.Add(worldId, instanceId);
         Main.GenerateReconnectScript(CVRUrl.CreateJoinURI(worldId, instanceId));
     }
 }
@@ -54,10 +44,8 @@ timeout /t {1}
 start """" {2}
 ";
     public bool fully_loaded = false;
-    public static InstanceHistoryMenu instanceHistoryMenu;
-    // public static ObservableCollection<string> instanceHistory = new ObservableCollection<string>();
     public CVRUrl StartupURI;
-    public MelonPreferences_Entry AutoConnectSetting, WorldIdSetting, InstanceIdSetting;
+    public MelonPreferences_Entry AutoConnectSetting;
 
     public override void OnPreSupportModule() {
         foreach (string arg in Environment.GetCommandLineArgs()) {
@@ -73,42 +61,8 @@ start """" {2}
     public override void OnApplicationStart() {
         MelonPreferences_Category cat = MelonPreferences.CreateCategory(Guh.Name);
         AutoConnectSetting = cat.CreateEntry<bool>("Enable Autoconnect", true, "Enable URI Protocol handler");
-        WorldIdSetting = cat.CreateEntry<string>("WorldID", "46c5f43c-4492-40af-94ce-f3ab559ed65c", "Debug World ID");
-        InstanceIdSetting = cat.CreateEntry<string>("InstanceID", "i+a94d415425f2546a-415006-3f6e77-1868cdc4", "Debug Instance ID");
-        InstanceHistory.Init("UserData/InstanceHistory.json");
-        ButtonAPI.OnInit += ButtonAPI_OnInit;
-        // instanceHistory = new ObservableCollection<string>();
-        // instanceHistory.CollectionChanged += InstanceHistory_CollectionChanged;
         Patches.Init(HarmonyInstance);
     }
-
-    private void ButtonAPI_OnInit() {
-        instanceHistoryMenu = new InstanceHistoryMenu(ButtonAPI.MainPage);
-        foreach (var entry in InstanceHistory.Instances.OrderByDescending(k => k.Value.LastJoined)) {
-            instanceHistoryMenu.Add(entry.Value.WorldId.ToString(), entry.Key, entry.Value.LastJoined??DateTime.Now);
-        }
-        string worldId = (string)WorldIdSetting.BoxedValue;
-        string instanceId = (string)InstanceIdSetting.BoxedValue;
-        ButtonAPI.MainPage.AddButton("Connect", InstanceHistoryMenu.GetInstanceToolTip(worldId, instanceId), () => {
-            CVRUrl.CreateJoinURI(worldId, instanceId).Join();
-        });
-    }
-
-    //private void InstanceHistory_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) {
-    //    var instance = ((string)e.NewItems[0]).Split(":");
-    //    instanceHistoryMenu.Add(instance[0], instance[1]);
-    //}
-    //bool waitForNextSceneForInit = false;
-    //public override void OnSceneWasUnloaded(int buildIndex, string sceneName) {
-    //    LoggerInstance.Msg("!fully_loaded: {0}", !fully_loaded);
-    //    LoggerInstance.Msg("!waitForNextSceneForInit: {0}", !waitForNextSceneForInit);
-    //    LoggerInstance.Msg("buildIndex == 1: {0}", buildIndex == 1);
-    //    LoggerInstance.Msg("sceneName == \"Headquarters\": {0}", sceneName == "Headquarters");
-    //    if (!fully_loaded && !waitForNextSceneForInit && buildIndex == 1 && sceneName == "Headquarters") {
-    //        LoggerInstance.Msg("Waiting for next scene to init...");
-    //        waitForNextSceneForInit = true;
-    //    }
-    //}
 
     public override void OnSceneWasInitialized(int buildIndex, string sceneName) {
         if (!fully_loaded && buildIndex == -1) {
