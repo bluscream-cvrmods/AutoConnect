@@ -2,7 +2,6 @@
 using MelonLoader;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Web;
 
 namespace Classes {
@@ -22,7 +21,7 @@ namespace Classes {
             }
 
             if (QueryDict.ContainsKey("id")) {
-                string worldstr = QueryDict["id"].Replace("%3A", ":").Replace(" ","+");
+                string worldstr = QueryDict["id"].Replace("%3A", ":").Replace(" ", "+");
                 if (worldstr.Contains(":")) {
                     string[] worldarray = worldstr.Split(':');
                     WorldId = worldarray[0];
@@ -33,8 +32,8 @@ namespace Classes {
             }
         }
         public static CVRUrl CreateJoinURI(string worldId, string instanceId) {
-            var builder = new UriBuilder("cvr", "launch");
-            var query = HttpUtility.ParseQueryString(builder.Query);
+            UriBuilder builder = new("cvr", "launch");
+            System.Collections.Specialized.NameValueCollection query = HttpUtility.ParseQueryString(builder.Query);
             query["id"] = $"{worldId}:{instanceId}";
             builder.Query = query.ToString();
             return new CVRUrl(builder.ToString());

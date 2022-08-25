@@ -54,9 +54,13 @@ namespace Bluscream {
             } catch { }
         }
 
-        public static string ReadAllText(this FileInfo file) => File.ReadAllText(file.FullName);
+        public static string ReadAllText(this FileInfo file) {
+            return File.ReadAllText(file.FullName);
+        }
 
-        public static List<string> ReadAllLines(this FileInfo file) => File.ReadAllLines(file.FullName).ToList();
+        public static List<string> ReadAllLines(this FileInfo file) {
+            return File.ReadAllLines(file.FullName).ToList();
+        }
         #endregion
         #region UI
         #endregion

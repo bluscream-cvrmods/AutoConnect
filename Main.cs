@@ -56,7 +56,9 @@ start """" {2}
                 return;
             }
         }
-        if (File.Exists("reconnect.bat")) File.Delete("reconnect.bat");
+        if (File.Exists("reconnect.bat")) {
+            File.Delete("reconnect.bat");
+        }
     }
     public override void OnApplicationStart() {
         MelonPreferences_Category cat = MelonPreferences.CreateCategory(Guh.Name);
@@ -84,9 +86,10 @@ start """" {2}
     public static void GenerateReconnectScript(CVRUrl uri) {
         string filename = Process.GetCurrentProcess().ProcessName + ".exe";
         string args = "";
-        foreach (var arg in Environment.GetCommandLineArgs()) {
-            if (!Uri.TryCreate(arg, UriKind.Absolute, out _))
-                args += arg+" ";
+        foreach (string arg in Environment.GetCommandLineArgs()) {
+            if (!Uri.TryCreate(arg, UriKind.Absolute, out _)) {
+                args += arg + " ";
+            }
         }
         args += uri.ToString();
         File.WriteAllText("reconnect.bat", string.Format(bat_template, filename, 3, args.Replace("%", "%%").Trim()));
