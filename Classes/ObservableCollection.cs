@@ -1,14 +1,9 @@
 ﻿// Licensed by Daniel Cazzulino under the MIT License
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Dynamic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Observables {
     /// <summary>
@@ -20,7 +15,7 @@ namespace Observables {
     public class ObservableDictionary<TKey, TValue> :
         ICollection<KeyValuePair<TKey, TValue>>, IDictionary<TKey, TValue>,
         INotifyCollectionChanged, INotifyPropertyChanged {
-        readonly IDictionary<TKey, TValue> dictionary;
+        private readonly IDictionary<TKey, TValue> dictionary;
 
         /// <summary>Event raised when the collection changes.</summary>
         public event NotifyCollectionChangedEventHandler CollectionChanged = (sender, args) => { };
@@ -43,11 +38,11 @@ namespace Observables {
             this.dictionary = dictionary;
         }
 
-        void AddWithNotification(KeyValuePair<TKey, TValue> item) {
+        private void AddWithNotification(KeyValuePair<TKey, TValue> item) {
             AddWithNotification(item.Key, item.Value);
         }
 
-        void AddWithNotification(TKey key, TValue value) {
+        private void AddWithNotification(TKey key, TValue value) {
             dictionary.Add(key, value);
 
             CollectionChanged(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add,
@@ -57,9 +52,8 @@ namespace Observables {
             PropertyChanged(this, new PropertyChangedEventArgs("Values"));
         }
 
-        bool RemoveWithNotification(TKey key) {
-            TValue value;
-            if (dictionary.TryGetValue(key, out value) && dictionary.Remove(key)) {
+        private bool RemoveWithNotification(TKey key) {
+            if (dictionary.TryGetValue(key, out TValue value) && dictionary.Remove(key)) {
                 CollectionChanged(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove,
                     new KeyValuePair<TKey, TValue>(key, value)));
                 PropertyChanged(this, new PropertyChangedEventArgs("Count"));
@@ -72,9 +66,8 @@ namespace Observables {
             return false;
         }
 
-        void UpdateWithNotification(TKey key, TValue value) {
-            TValue existing;
-            if (dictionary.TryGetValue(key, out existing)) {
+        private void UpdateWithNotification(TKey key, TValue value) {
+            if (dictionary.TryGetValue(key, out TValue existing)) {
                 dictionary[key] = value;
 
                 CollectionChanged(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace,
@@ -119,9 +112,7 @@ namespace Observables {
         /// Gets an <see cref="T:System.Collections.Generic.ICollection`1" /> containing the keys of the <see cref="T:System.Collections.Generic.IDictionary`2" />.
         /// </summary>
         /// <returns>An <see cref="T:System.Collections.Generic.ICollection`1" /> containing the keys of the object that implements <see cref="T:System.Collections.Generic.IDictionary`2" />.</returns>
-        public ICollection<TKey> Keys {
-            get { return dictionary.Keys; }
-        }
+        public ICollection<TKey> Keys => dictionary.Keys;
 
         /// <summary>
         /// Removes the element with the specified key from the <see cref="T:System.Collections.Generic.IDictionary`2" />.
@@ -150,9 +141,7 @@ namespace Observables {
         /// Gets an <see cref="T:System.Collections.Generic.ICollection`1" /> containing the values in the <see cref="T:System.Collections.Generic.IDictionary`2" />.
         /// </summary>
         /// <returns>An <see cref="T:System.Collections.Generic.ICollection`1" /> containing the values in the object that implements <see cref="T:System.Collections.Generic.IDictionary`2" />.</returns>
-        public ICollection<TValue> Values {
-            get { return dictionary.Values; }
-        }
+        public ICollection<TValue> Values => dictionary.Values;
 
         /// <summary>
         /// Gets or sets the element with the specified key.
@@ -160,8 +149,8 @@ namespace Observables {
         /// <param name="key">The key.</param>
         /// <returns></returns>
         public TValue this[TKey key] {
-            get { return dictionary[key]; }
-            set { UpdateWithNotification(key, value); }
+            get => dictionary[key];
+            set => UpdateWithNotification(key, value);
         }
 
         #endregion
@@ -173,7 +162,7 @@ namespace Observables {
         }
 
         void ICollection<KeyValuePair<TKey, TValue>>.Clear() {
-            ((ICollection<KeyValuePair<TKey, TValue>>)dictionary).Clear();
+            dictionary.Clear();
 
             CollectionChanged(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
             PropertyChanged(this, new PropertyChangedEventArgs("Count"));
@@ -182,20 +171,16 @@ namespace Observables {
         }
 
         bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item) {
-            return ((ICollection<KeyValuePair<TKey, TValue>>)dictionary).Contains(item);
+            return dictionary.Contains(item);
         }
 
         void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex) {
-            ((ICollection<KeyValuePair<TKey, TValue>>)dictionary).CopyTo(array, arrayIndex);
+            dictionary.CopyTo(array, arrayIndex);
         }
 
-        int ICollection<KeyValuePair<TKey, TValue>>.Count {
-            get { return ((ICollection<KeyValuePair<TKey, TValue>>)dictionary).Count; }
-        }
+        int ICollection<KeyValuePair<TKey, TValue>>.Count => dictionary.Count;
 
-        bool ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly {
-            get { return ((ICollection<KeyValuePair<TKey, TValue>>)dictionary).IsReadOnly; }
-        }
+        bool ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly => dictionary.IsReadOnly;
 
         bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item) {
             return RemoveWithNotification(item.Key);
@@ -206,11 +191,11 @@ namespace Observables {
         #region IEnumerable<KeyValuePair<TKey,TValue>> Members
 
         IEnumerator<KeyValuePair<TKey, TValue>> IEnumerable<KeyValuePair<TKey, TValue>>.GetEnumerator() {
-            return ((ICollection<KeyValuePair<TKey, TValue>>)dictionary).GetEnumerator();
+            return dictionary.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator() {
-            return ((ICollection<KeyValuePair<TKey, TValue>>)dictionary).GetEnumerator();
+            return dictionary.GetEnumerator();
         }
 
         #endregion

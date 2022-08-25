@@ -2,6 +2,8 @@
 using MelonLoader;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Web;
 
 namespace Classes {
     // vrchat://launch?ref=vrchat.com&id=wrld_a6e75419-0f76-402b-966e-3dc8b79a6b30:98085~region(eu)&shortName=a9k0njd0
@@ -16,15 +18,21 @@ namespace Classes {
             }
 
             if (QueryDict.ContainsKey("id")) {
-                string worldstr = QueryDict["id"];
+                string worldstr = QueryDict["id"].Replace("%3A", ":");
                 if (worldstr.Contains(":")) {
                     string[] worldarray = worldstr.Split(':');
                     WorldId = worldarray[0];
-                    InstanceId = worldarray[1];
+                    InstanceId = worldarray[1]; // .Split('+').Last();
                 } else {
                     WorldId = worldstr;
                 }
             }
+        }
+        public static CVRUrl CreateJoinURI(string worldId, string instanceId) {
+            var builder = new UriBuilder("cvr", "launch");
+            var query = HttpUtility.ParseQueryString(builder.Query);
+            query["id"] = $"{worldId}:{instanceId}";
+            return new CVRUrl(builder.ToString());
         }
         public void Join() {
             MelonLogger.Msg("Joining instance: {0}:{1}", WorldId, InstanceId);
@@ -34,13 +42,21 @@ namespace Classes {
             return Scheme.Equals("cvr", StringComparison.OrdinalIgnoreCase);
         }
         public bool IsValidJoinLink() {
-            if (!QueryDict.ContainsKey("id")) return false;
-            if (!Guid.TryParse(WorldId, out _)) return false;
+            if (!QueryDict.ContainsKey("id")) {
+                return false;
+            }
+
+            if (!Guid.TryParse(WorldId, out _)) {
+                return false;
+            }
+
             if (InstanceId.Contains("+")) {
                 // var t = InstanceId.Split("+");
                 // if (!Guid.TryParse(t[1], out _)) return false;
             } else {
-                if (!Guid.TryParse(InstanceId, out _)) return false;
+                if (!Guid.TryParse(InstanceId, out _)) {
+                    return false;
+                }
             }
             return true;
         }
