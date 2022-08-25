@@ -1,6 +1,8 @@
-﻿using Newtonsoft.Json;
+﻿using MelonLoader;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
@@ -187,6 +189,27 @@ namespace Bluscream {
         public static Dictionary<string, string> ParseQueryString(this string queryString) {
             NameValueCollection nvc = HttpUtility.ParseQueryString(queryString);
             return nvc.AllKeys.ToDictionary(k => k, k => nvc[k]);
+        }
+        public static Dictionary<string, string> GetQueryDict(this Uri uri) => uri.Query.ParseQueryString();
+
+        public static bool CVRIsValid(this Uri uri) {
+            return uri.Scheme.Equals("cvr", StringComparison.OrdinalIgnoreCase);
+        }
+        public static bool TryParseCVRUri(this string url, out Classes.CVRUrl cvruri) {
+            cvruri = null;
+            bool success = Uri.TryCreate(url.Trim(), UriKind.Absolute, out Uri uri);
+            if (!success) return false;
+            if (!uri.CVRIsValid()) return false;
+            cvruri = new Classes.CVRUrl(uri);
+            return true;
+        }
+
+    public static string CVRGetInstance(this Uri uri) {
+            var dict = uri.GetQueryDict();
+            if (dict.ContainsKey("id")) {
+                return dict["id"].Replace("%3A", ":").Replace(" ", "+");
+            }
+            return null;
         }
         #endregion
         #region Enum

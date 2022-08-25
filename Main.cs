@@ -2,12 +2,14 @@
 using ABI_RC.Core.Extensions;
 using ABI_RC.Core.Networking;
 using AutoConnect;
+using Bluscream;
 using Classes;
 using HarmonyLib;
 using MelonLoader;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Security.Permissions;
 using System.Security.Principal;
 using System.Threading;
@@ -51,7 +53,7 @@ public class Main : MelonMod {
     public const string bat_template = @"
 taskkill /f /im {0}
 timeout /t {1}
-start """" {2}
+start """" ""{2}"" {3}
 ";
     public bool fully_loaded = false;
     public CVRUrl StartupURI;
@@ -96,14 +98,23 @@ start """" {2}
         }
 
         foreach (string arg in Environment.GetCommandLineArgs()) {
-            bool success = Uri.TryCreate(arg.Trim(), UriKind.Absolute, out Uri uri);
-            if (success && uri.Scheme == "cvr") {
-                StartupURI = new CVRUrl(arg.Trim());
-                LoggerInstance.Msg("Found and set StartupURI: {0}", StartupURI);
-                return;
+            bool success = arg.TryParseCVRUri(out var uri);
+            if (success) {
+                StartupURI = uri;
+                break;
             }
         }
-        if (File.Exists("reconnect.bat")) {
+        var rec_file = new FileInfo("reconnect.bat");
+        if (rec_file.Exists) {
+            if (StartupURI is null) {
+                foreach (var word in rec_file.ReadAllText().Split(' ')) {
+                    bool success = word.TryParseCVRUri(out var uri);
+                    if (success) {
+                        StartupURI = uri;
+                        break;
+                    }
+                }
+            }
             File.Delete("reconnect.bat");
         }
     }
@@ -120,8 +131,8 @@ start """" {2}
     }
     public void OnGameFullyLoaded() {
         if ((bool)AutoConnectSetting.BoxedValue) {
-            bool valid = StartupURI.IsValidJoinLink();
-            MelonLogger.Msg("Checking StartupURI: {0}:{1} ({2})", StartupURI.WorldId, StartupURI.InstanceId, valid ? "Valid" : "Invalid");
+            bool valid = StartupURI != null && StartupURI.IsValidJoinLink();
+            MelonLogger.Msg("Checking StartupURI: {0} ({1})", StartupURI, (valid ? "Valid" : "Invalid"));
             if (valid) {
                 StartupURI.Join();
             }
@@ -131,12 +142,12 @@ start """" {2}
     public static void GenerateReconnectScript(CVRUrl uri) {
         string filename = Process.GetCurrentProcess().ProcessName + ".exe";
         string args = "";
-        foreach (string arg in Environment.GetCommandLineArgs()) {
+        foreach (string arg in Environment.GetCommandLineArgs().Skip(1)) {
             if (!Uri.TryCreate(arg, UriKind.Absolute, out _)) {
                 args += arg + " ";
             }
         }
-        args += uri.ToString();
-        File.WriteAllText("reconnect.bat", string.Format(bat_template, filename, 3, args.Replace("%", "%%").Trim()));
+        args += uri.Uri.ToString();
+        File.WriteAllText("reconnect.bat", string.Format(bat_template, filename, 3, Environment.GetCommandLineArgs()[0], args.Replace("%", "%%").Trim()));
     }
 }
