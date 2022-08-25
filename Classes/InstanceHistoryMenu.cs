@@ -4,6 +4,7 @@ using MelonLoader;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Security.Policy;
 using UnityEngine;
 
 
@@ -19,12 +20,10 @@ namespace AutoConnect {
             Menu = Parent.AddSubMenu("Instance History", "Instance History");
             return this;
         }
-        public GameObject Add(CVRUrl url) {
-            return Add(url.WorldId, url.InstanceId);
-        }
-
-        public GameObject Add(string worldId, string instanceId) {
-            return Menu.AddButton($"{DateTime.Now}", GetInstanceToolTip(worldId, instanceId), () => {
+        public GameObject Add(CVRUrl url) => Add(url.WorldId, url.InstanceId, DateTime.Now);
+        public GameObject Add(string worldId, string instanceId) => Add(worldId, instanceId, DateTime.Now);
+        public GameObject Add(string worldId, string instanceId, DateTimeOffset timestamp) {
+            return Menu.AddButton($"{timestamp.LocalDateTime}", GetInstanceToolTip(worldId, instanceId), () => {
                 ABI_RC.Core.Networking.IO.Instancing.Instances.SetJoinTarget(instanceId, worldId);
             });
         }

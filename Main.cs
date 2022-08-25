@@ -1,14 +1,12 @@
 ﻿using ABI_RC.Core.Networking;
-using ABI_RC.Core.Player;
 using AutoConnect;
 using Classes;
 using HarmonyLib;
 using MelonLoader;
-using Newtonsoft.Json;
 using System;
-using System.Collections;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using ButtonAPI = ChilloutButtonAPI.ChilloutButtonAPIMain;
 
@@ -86,6 +84,9 @@ start """" {2}
 
     private void ButtonAPI_OnInit() {
         instanceHistoryMenu = new InstanceHistoryMenu(ButtonAPI.MainPage);
+        foreach (var entry in InstanceHistory.Instances.OrderByDescending(k => k.Value.LastJoined)) {
+            instanceHistoryMenu.Add(entry.Value.WorldId.ToString(), entry.Key, entry.Value.LastJoined??DateTime.Now);
+        }
         string worldId = (string)WorldIdSetting.BoxedValue;
         string instanceId = (string)InstanceIdSetting.BoxedValue;
         ButtonAPI.MainPage.AddButton("Connect", InstanceHistoryMenu.GetInstanceToolTip(worldId, instanceId), () => {
