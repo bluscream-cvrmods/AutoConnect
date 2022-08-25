@@ -18,7 +18,7 @@ namespace Classes {
             }
 
             if (QueryDict.ContainsKey("id")) {
-                string worldstr = QueryDict["id"].Replace("%3A", ":");
+                string worldstr = QueryDict["id"].Replace("%3A", ":").Replace(" ","+");
                 if (worldstr.Contains(":")) {
                     string[] worldarray = worldstr.Split(':');
                     WorldId = worldarray[0];
