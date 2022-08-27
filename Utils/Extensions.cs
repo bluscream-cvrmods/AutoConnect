@@ -1,4 +1,5 @@
-﻿using MelonLoader;
+﻿using ABI_RC.Core.Player;
+using MelonLoader;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System;
@@ -8,6 +9,7 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -72,6 +74,32 @@ namespace Bluscream {
         }
         #endregion
         #region String
+        public static UnityEngine.Vector3? ParseVector3(this string source) {
+            var split = source.Split(",");
+            switch (split.Length) {
+                case 3:
+                    return new UnityEngine.Vector3(float.Parse(split[0]), float.Parse(split[1]), float.Parse(split[2]));
+                case 2:
+                    return new UnityEngine.Vector3(float.Parse(split[0]), PlayerSetup.Instance.gameObject.transform.position.y, float.Parse(split[2]));
+                case 1:
+                    return new UnityEngine.Vector3(PlayerSetup.Instance.gameObject.transform.position.x, float.Parse(split[0]), PlayerSetup.Instance.gameObject.transform.position.z);
+            }
+            return null;
+        }
+        public static UnityEngine.Quaternion? ParseQuaternion(this string source) {
+            var split = source.Split(",");
+            switch (split.Length) {
+                case 4:
+                    return new UnityEngine.Quaternion(float.Parse(split[0]), float.Parse(split[1]), float.Parse(split[2]), float.Parse(split[3]));
+                case 3:
+                    return new UnityEngine.Quaternion(float.Parse(split[0]), PlayerSetup.Instance.gameObject.transform.rotation.y, float.Parse(split[1]), float.Parse(split[2]));
+                case 2:
+                    return new UnityEngine.Quaternion(PlayerSetup.Instance.gameObject.transform.rotation.x, float.Parse(split[0]), PlayerSetup.Instance.gameObject.transform.rotation.z, float.Parse(split[1]));
+                case 1:
+                    return new UnityEngine.Quaternion(PlayerSetup.Instance.gameObject.transform.rotation.x, float.Parse(split[0]), PlayerSetup.Instance.gameObject.transform.rotation.z, PlayerSetup.Instance.gameObject.transform.rotation.w);
+            }
+            return null;
+        }
         public static bool Contains(this string source, string toCheck, StringComparison comp) {
             return source?.IndexOf(toCheck, comp) >= 0;
         }
@@ -204,10 +232,13 @@ namespace Bluscream {
             return true;
         }
 
-    public static string CVRGetInstance(this Uri uri) {
+        public static string CVRGetInstance(this Uri uri) => uri.GetQueryValue("id");
+        public static string CVRGetPosition(this Uri uri) => uri.GetQueryValue("pos");
+        public static string CVRGetRotation(this Uri uri) => uri.GetQueryValue("rot");
+        public static string GetQueryValue(this Uri uri, string key) {
             var dict = uri.GetQueryDict();
-            if (dict.ContainsKey("id")) {
-                return dict["id"].Replace("%3A", ":").Replace(" ", "+");
+            if (dict.ContainsKey(key)) {
+                return dict[key].Replace("%3A", ":").Replace(" ", "+");
             }
             return null;
         }

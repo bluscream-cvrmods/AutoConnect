@@ -1,7 +1,10 @@
 ﻿using ABI_RC.Core;
 using ABI_RC.Core.Extensions;
 using ABI_RC.Core.Networking;
+using ABI_RC.Core.Player;
+using ABI_RC.Systems.MovementSystem;
 using AutoConnect;
+using Bhaptics.Tact.Unity;
 using Bluscream;
 using Classes;
 using HarmonyLib;
@@ -55,7 +58,7 @@ taskkill /f /im {0}
 timeout /t {1}
 start """" ""{2}"" {3}
 ";
-    public bool fully_loaded = false;
+    public bool fully_loaded, waitingForJoin = false;
     public CVRUrl StartupURI;
     public MelonPreferences_Entry AutoConnectSetting, URIInstallIgnored, URIInstallForced;
 
@@ -101,6 +104,7 @@ start """" ""{2}"" {3}
             bool success = arg.TryParseCVRUri(out var uri);
             if (success) {
                 StartupURI = uri;
+                LoggerInstance.Msg(StartupURI.ToDebugString());
                 break;
             }
         }
@@ -127,6 +131,12 @@ start """" ""{2}"" {3}
             fully_loaded = true;
             Thread.Sleep(1000);
             OnGameFullyLoaded();
+        } else if (waitingForJoin) {
+            waitingForJoin = false;
+            LoggerInstance.Msg("Joined Startup Instance {0}", StartupURI.Uri.CVRGetInstance());
+            LoggerInstance.Msg("Teleporting to {0}", StartupURI.Position);
+            LoggerInstance.Msg("Rotating to {0}", StartupURI.Rotation);
+            StartupURI.Teleport();
         }
     }
     public void OnGameFullyLoaded() {
@@ -134,12 +144,13 @@ start """" ""{2}"" {3}
             bool valid = StartupURI != null && StartupURI.IsValidJoinLink();
             MelonLogger.Msg("Checking StartupURI: {0} ({1})", StartupURI, (valid ? "Valid" : "Invalid"));
             if (valid) {
+                waitingForJoin = true;
                 StartupURI.Join();
             }
         }
     }
 
-    public static void GenerateReconnectScript(CVRUrl uri) {
+    public static void GenerateReconnectScript(CVRUrl uri, bool force = false) {
         string filename = Process.GetCurrentProcess().ProcessName + ".exe";
         string args = "";
         foreach (string arg in Environment.GetCommandLineArgs().Skip(1)) {
