@@ -19,6 +19,14 @@ using System.Web;
 
 namespace Bluscream {
     internal static class Extensions {
+        #region Vector
+        public static bool isZero(this UnityEngine.Vector3 vector) {
+            return vector.Equals(new Vector3(0.0f, 0.0f, 0.0f));
+        }
+        public static bool isZero(this UnityEngine.Quaternion quaternion) {
+            return quaternion.Equals(new Quaternion(0.0f, 0.0f, 0.0f, 0.0f));
+        }
+        #endregion
         #region DateTime
         public static bool ExpiredSince(this DateTime dateTime, int minutes) {
             return (dateTime - DateTime.Now).TotalMinutes < minutes;

@@ -1,5 +1,6 @@
 ﻿using ABI_RC.Core.Player;
 using ABI_RC.Systems.MovementSystem;
+using Assets.ABI_RC.Systems.Safety.AdvancedSafety;
 using Bluscream;
 using MelonLoader;
 using System;
@@ -24,8 +25,8 @@ namespace Classes {
         public List<string> Arguments { get; set; } = new List<string>();
         public string WorldId { get; set; }
         public string InstanceId { get; set; }
-        public UnityEngine.Vector3 Position { get; set; }
-        public UnityEngine.Quaternion Rotation { get; set; }
+        public UnityEngine.Vector3? Position { get; set; }
+        public UnityEngine.Quaternion? Rotation { get; set; }
         public CVRUrl(Uri uri) {
             Uri = uri;
             Parse();
@@ -75,11 +76,14 @@ namespace Classes {
             MelonLogger.Msg("Joining instance: {0}:{1}", WorldId, InstanceId);
             ABI_RC.Core.Networking.IO.Instancing.Instances.SetJoinTarget(InstanceId, WorldId);
         }
+        public bool HasTeleport() {
+            return !Position.Value.isZero() || !Rotation.Value.isZero();
+        }
         public void Teleport() {
             if (Position != null) {
-                if (Rotation != null) MovementSystem.Instance.TeleportToPosRot(Position, Rotation);
-                else MovementSystem.Instance.TeleportToPosRot(Position, PlayerSetup.Instance.gameObject.transform.rotation);
-            } else if (Rotation != null) MovementSystem.Instance.TeleportToPosRot(PlayerSetup.Instance.gameObject.transform.position, Rotation);
+                if (Rotation != null) MovementSystem.Instance.TeleportToPosRot(Position.Value, Rotation.Value);
+                else MovementSystem.Instance.TeleportToPosRot(Position.Value, PlayerSetup.Instance.gameObject.transform.rotation);
+            } else if (Rotation != null) MovementSystem.Instance.TeleportToPosRot(PlayerSetup.Instance.gameObject.transform.position, Rotation.Value);
         }
         public bool IsValid() => Uri.CVRIsValid();
         public bool IsValidJoinLink() {

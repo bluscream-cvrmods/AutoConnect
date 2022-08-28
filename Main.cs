@@ -60,7 +60,7 @@ start """" ""{2}"" {3}
 ";
     public bool fully_loaded, waitingForJoin = false;
     public CVRUrl StartupURI;
-    public MelonPreferences_Entry AutoConnectSetting, URIInstallIgnored, URIInstallForced;
+    public MelonPreferences_Entry AutoConnectSetting, URIInstallIgnored, URIInstallForced, UseReconnectScript;
 
     private static bool IsAdministrator() {
         WindowsIdentity identity = WindowsIdentity.GetCurrent();
@@ -81,6 +81,7 @@ start """" ""{2}"" {3}
         AutoConnectSetting = cat.CreateEntry<bool>("Enable Autoconnect", true, "Enable URI Protocol handler");
         URIInstallIgnored = cat.CreateEntry("URIInstallIgnored", false, "Disable URI Installation Check");
         URIInstallForced = cat.CreateEntry("URIInstallForced", false, "Force URI Installation Check", true);
+        UseReconnectScript = cat.CreateEntry("UseReconnectScript", false, "Will use the created reconnect script when URI argument is missing", false);
         var forced = (bool)URIInstallForced.BoxedValue;
         if (forced || !(bool)URIInstallIgnored.BoxedValue) {
             var service = new URISchemeService("cvr", "URL:cvr Protocol", Environment.GetCommandLineArgs()[0], RegisterType.CurrentUser);
@@ -109,7 +110,7 @@ start """" ""{2}"" {3}
             }
         }
         var rec_file = new FileInfo("reconnect.bat");
-        if (rec_file.Exists) {
+        if (rec_file.Exists && (bool)UseReconnectScript.BoxedValue) {
             if (StartupURI is null) {
                 foreach (var word in rec_file.ReadAllText().Split(' ')) {
                     bool success = word.TryParseCVRUri(out var uri);
@@ -119,7 +120,7 @@ start """" ""{2}"" {3}
                     }
                 }
             }
-            File.Delete("reconnect.bat");
+            rec_file.Delete();
         }
     }
     public override void OnApplicationStart() {
@@ -144,7 +145,7 @@ start """" ""{2}"" {3}
             bool valid = StartupURI != null && StartupURI.IsValidJoinLink();
             MelonLogger.Msg("Checking StartupURI: {0} ({1})", StartupURI, (valid ? "Valid" : "Invalid"));
             if (valid) {
-                waitingForJoin = true;
+                if (StartupURI.HasTeleport()) waitingForJoin = true;
                 StartupURI.Join();
             }
         }
