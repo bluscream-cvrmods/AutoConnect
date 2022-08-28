@@ -77,7 +77,7 @@ namespace Classes {
             ABI_RC.Core.Networking.IO.Instancing.Instances.SetJoinTarget(InstanceId, WorldId);
         }
         public bool HasTeleport() {
-            return !Position.Value.isZero() || !Rotation.Value.isZero();
+            return (Position.Value != null && !Position.Value.isZero()) || (Rotation.Value != null && !Rotation.Value.isZero());
         }
         public void Teleport() {
             if (Position != null) {
